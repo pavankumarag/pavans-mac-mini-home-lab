@@ -1,1 +1,3 @@
 docker compose --env-file .env -f docker-compose/infra/infra.yaml ps
+docker compose --env-file .env -f docker-compose/storage/storage.yaml up -d
+docker compose --env-file .env -f docker-compose/storage/storage.yaml ps

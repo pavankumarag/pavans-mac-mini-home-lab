@@ -1,0 +1,175 @@
+name: homelab-storage
+
+services:
+
+  ############################################################
+  # NEXTCLOUD
+  ############################################################
+
+  nextcloud-db:
+    image: mariadb:11
+    container_name: nextcloud-db
+
+    restart: unless-stopped
+
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+
+    environment:
+      - MYSQL_ROOT_PASSWORD=${NEXTCLOUD_DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
+
+    volumes:
+      - ${HOMELAB_ROOT}/data/nextcloud/db:/var/lib/mysql
+
+  nextcloud-redis:
+    image: redis:7-alpine
+    container_name: nextcloud-redis
+
+    restart: unless-stopped
+
+    command: --requirepass ${NEXTCLOUD_REDIS_PASSWORD}
+
+  nextcloud:
+    image: nextcloud:apache
+    container_name: nextcloud
+
+    restart: unless-stopped
+
+    depends_on:
+      - nextcloud-db
+      - nextcloud-redis
+
+    ports:
+      - "${NEXTCLOUD_PORT}:80"
+
+    environment:
+      - MYSQL_HOST=nextcloud-db
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
+      - REDIS_HOST=nextcloud-redis
+      - REDIS_HOST_PASSWORD=${NEXTCLOUD_REDIS_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS}
+      - TZ=${TZ}
+
+    volumes:
+      - ${HOMELAB_ROOT}/data/nextcloud/app:/var/www/html
+      - ${HOMELAB_ROOT}/data/nextcloud/files:/var/www/html/data
+
+  # Runs Nextcloud's background jobs (file scans, notifications, previews)
+  # on the recommended schedule instead of relying on browser cron triggers.
+  nextcloud-cron:
+    image: nextcloud:apache
+    container_name: nextcloud-cron
+
+    restart: unless-stopped
+
+    entrypoint: /cron.sh
+
+    depends_on:
+      - nextcloud-db
+      - nextcloud-redis
+
+    volumes:
+      - ${HOMELAB_ROOT}/data/nextcloud/app:/var/www/html
+      - ${HOMELAB_ROOT}/data/nextcloud/files:/var/www/html/data
+
+  ############################################################
+  # IMMICH
+  ############################################################
+
+  immich-redis:
+    image: docker.io/valkey/valkey:8-bookworm
+    container_name: immich-redis
+
+    restart: unless-stopped
+
+  immich-db:
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.3.0-pgvectors0.2.0
+    container_name: immich-db
+
+    restart: unless-stopped
+
+    environment:
+      - POSTGRES_USER=${IMMICH_DB_USERNAME}
+      - POSTGRES_PASSWORD=${IMMICH_DB_PASSWORD}
+      - POSTGRES_DB=${IMMICH_DB_DATABASE_NAME}
+      - POSTGRES_INITDB_ARGS=--data-checksums
+
+    volumes:
+      - ${HOMELAB_ROOT}/data/immich/db:/var/lib/postgresql/data
+
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    container_name: immich-machine-learning
+
+    restart: unless-stopped
+
+    volumes:
+      - ${HOMELAB_ROOT}/data/immich/model-cache:/cache
+
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    container_name: immich-server
+
+    restart: unless-stopped
+
+    depends_on:
+      - immich-redis
+      - immich-db
+      - immich-machine-learning
+
+    ports:
+      - "${IMMICH_PORT}:2283"
+
+    environment:
+      - DB_HOSTNAME=immich-db
+      - DB_USERNAME=${IMMICH_DB_USERNAME}
+      - DB_PASSWORD=${IMMICH_DB_PASSWORD}
+      - DB_DATABASE_NAME=${IMMICH_DB_DATABASE_NAME}
+      - REDIS_HOSTNAME=immich-redis
+      - TZ=${TZ}
+
+    volumes:
+      - ${HOMELAB_ROOT}/data/immich/library:/usr/src/app/upload
+      - /etc/localtime:/etc/localtime:ro
+
+  ############################################################
+  # PAPERLESS-NGX
+  ############################################################
+
+  paperless-broker:
+    image: redis:7-alpine
+    container_name: paperless-broker
+
+    restart: unless-stopped
+
+    volumes:
+      - ${HOMELAB_ROOT}/data/paperless/redis:/data
+
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    container_name: paperless
+
+    restart: unless-stopped
+
+    depends_on:
+      - paperless-broker
+
+    ports:
+      - "${PAPERLESS_PORT}:8000"
+
+    environment:
+      - PAPERLESS_REDIS=redis://paperless-broker:6379
+      - PAPERLESS_TIME_ZONE=${TZ}
+      - PAPERLESS_OCR_LANGUAGE=eng
+      - PAPERLESS_SECRET_KEY=${PAPERLESS_SECRET_KEY}
+      - PAPERLESS_URL=http://macmini:${PAPERLESS_PORT}
+
+    volumes:
+      - ${HOMELAB_ROOT}/data/paperless/data:/usr/src/paperless/data
+      - ${HOMELAB_ROOT}/data/paperless/media:/usr/src/paperless/media
+      - ${HOMELAB_ROOT}/data/paperless/export:/usr/src/paperless/export
+      - ${HOMELAB_ROOT}/data/paperless/consume:/usr/src/paperless/consume
