@@ -150,8 +150,12 @@ services:
       - ${HOMELAB_ROOT}/data/paperless/redis:/data
 
   paperless:
-    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    build:
+      context: .
+      dockerfile: paperless.Dockerfile
+    image: homelab-paperless:local
     container_name: paperless
+    platform: linux/arm64
 
     restart: unless-stopped
 
