@@ -1,0 +1,8 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/configs/bookmarks
+
+- Homelab:
+    - GitHub:
+        - abbr: GH
+          href: https://github.com/pavankumarag/pavans-mac-mini-home-lab

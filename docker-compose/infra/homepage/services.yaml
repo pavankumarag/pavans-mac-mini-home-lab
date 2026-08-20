@@ -1,0 +1,34 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/configs/services/
+
+- Infrastructure:
+    - Portainer:
+        icon: portainer.png
+        href: http://macmini:9000
+        description: Docker container management
+
+    - Uptime Kuma:
+        icon: uptime-kuma.png
+        href: http://macmini:3001
+        description: Service health monitoring
+
+    - Watchtower:
+        icon: watchtower.png
+        description: Automatic container image updates
+
+- Storage:
+    - Nextcloud:
+        icon: nextcloud.png
+        href: http://macmini:8081
+        description: Personal cloud storage & files
+
+    - Immich:
+        icon: immich.png
+        href: http://macmini:2283
+        description: Photo & video backup
+
+    - Paperless-ngx:
+        icon: paperless-ngx.png
+        href: http://macmini:8010
+        description: Document management & OCR

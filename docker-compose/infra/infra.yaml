@@ -37,7 +37,7 @@ services:
       - HOMEPAGE_ALLOWED_HOSTS=localhost:3000
 
     volumes:
-      - ${HOMELAB_ROOT}/data/homepage:/app/config
+      - ./homepage:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
   ############################################################

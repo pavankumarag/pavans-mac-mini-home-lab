@@ -1,0 +1,15 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/configs/settings/
+
+title: Pavan Private Cloud
+theme: dark
+color: slate
+
+layout:
+  Infrastructure:
+    style: row
+    columns: 3
+  Storage:
+    style: row
+    columns: 3
